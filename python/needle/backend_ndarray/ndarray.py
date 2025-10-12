@@ -289,7 +289,9 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_shape = tuple(self.shape[i] for i in new_axes)
+        new_strides = tuple(self.strides[i] for i in new_axes)
+        return NDArray.make(new_shape, strides=new_strides, device=self.device, handle=self._handle, offset=self._offset)
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape: tuple[int, ...]) -> "NDArray":
@@ -313,7 +315,9 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert all(new_shape[i] == self.shape[i] for i in range(len(new_shape)) if self.shape[i] != 1), ValueError("New shape must be the same as the original shape")
+        new_strides = NDArray.compact_strides(new_shape)
+        return NDArray.make(new_shape, strides=new_strides, device=self.device, handle=self._handle, offset=self._offset)
         ### END YOUR SOLUTION]
 
     ### Get and set elements
@@ -380,7 +384,11 @@ class NDArray:
         assert len(slices) == self.ndim, "Need indexes equal to number of dimensions"
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert all(slice[i].stop > slice[i].start for i in range(len(slices))), "Slice must have positive size"
+        assert all(slice[i].step > 0 for i in range(len(slices))), "Slice must have positive step"
+        new_shape = tuple(self.shape[i] for i in slices)
+        new_strides = tuple(self.strides[i] for i in slices)
+        return NDArray.make(new_shape, strides=new_strides, device=self.device, handle=self._handle, offset=self._offset)
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs: int | slice | tuple[int | slice, ...], other: Union["NDArray", float]) -> None:
