@@ -44,14 +44,14 @@ void Fill(AlignedArray* out, scalar_t val) {
 }
 
 
-void IncrementIndices(std::vector<size_t>& indices, std::vector<size_t> shape) {
+void IncrementIndices(std::vector<int32_t>& indices, std::vector<int32_t> shape) {
   for (size_t i = 0; i < indices.size(); i++) {
     indices[i]++;
     if (indices[i] == shape[i]) {
       indices[i] = 0;
-    }
-    if (i + 1 < indices.size()) {
-      indices[i + 1]++;
+      if (i + 1 < indices.size()) {
+        indices[i + 1]++;
+      }
     }
   }
 }
@@ -74,7 +74,7 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN SOLUTION
-  std::vector<size_t> indices = std::vector<size_t>(shape.size(), 0);
+  std::vector<int32_t> indices = std::vector<int32_t>(shape.size(), 0);
   for (size_t i = 0; i < out->size; i++) {
     size_t index = 0;
     for (size_t j = 0; j < shape.size(); j++) {
@@ -99,7 +99,7 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t>
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN SOLUTION
-  std::vector<size_t> indices = std::vector<size_t>(shape.size(), 0);
+  std::vector<int32_t> indices = std::vector<int32_t>(shape.size(), 0);
   for (size_t i = 0; i < out->size; i++) {
     size_t index = 0;
     for (size_t j = 0; j < shape.size(); j++) {
@@ -128,7 +128,7 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN SOLUTION
-  std::vector<size_t> indices = std::vector<size_t>(shape.size(), 0);
+  std::vector<int32_t> indices = std::vector<int32_t>(shape.size(), 0);
   for (size_t i = 0; i < out->size; i++) {
     size_t index = 0;
     for (size_t j = 0; j < shape.size(); j++) {
