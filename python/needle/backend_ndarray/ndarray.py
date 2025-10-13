@@ -317,7 +317,8 @@ class NDArray:
         ### BEGIN YOUR SOLUTION
         assert all(new_shape[i] == self.shape[i] for i in range(len(new_shape)) if self.shape[i] != 1), ValueError("New shape must be the same as the original shape")
         new_strides = tuple(self.strides[i] if new_shape[i] != 1 else 0 for i in range(len(new_shape)))
-        return self.as_strided(new_shape, new_strides)
+        new_array = self.compact()
+        return new_array.as_strided(new_shape, new_strides)
         ### END YOUR SOLUTION
 
     ### Get and set elements
