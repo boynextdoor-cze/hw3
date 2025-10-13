@@ -44,13 +44,14 @@ void Fill(AlignedArray* out, scalar_t val) {
 }
 
 
-void IncrementIndices(std::vector<int32_t>& indices, const std::vector<int32_t>& shape) {
-  for (auto i = 0; i < shape.size(); i++) {
-    indices[i]++;
-    if (indices[i] == shape[i]) {
+void IncrementIndices(std::vector<int32_t> &indices,
+                      const std::vector<int32_t> &shape) {
+  indices[indices.size() - 1]++;
+  for (int i = indices.size() - 1; i >= 0; i--) {
+    if (indices[i] >= shape[i]) {
       indices[i] = 0;
-      if (i + 1 < shape.size()) {
-        indices[i + 1]++;
+      if (i - 1 >= 0) {
+        indices[i - 1]++;
       }
       else {
         break;
@@ -132,7 +133,7 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
 
   /// BEGIN SOLUTION
   auto indices = std::vector<int32_t>(shape.size(), 0);
-  for (size_t i = 0; i < out->size; i++) {
+  for (size_t i = 0; i < size; i++) {
     size_t index = 0;
     for (size_t j = 0; j < shape.size(); j++) {
       index += indices[j] * strides[j];
