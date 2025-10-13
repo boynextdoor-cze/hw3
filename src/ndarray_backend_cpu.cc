@@ -45,9 +45,9 @@ void Fill(AlignedArray* out, scalar_t val) {
 
 
 void IncrementIndices(std::vector<int32_t> &indices,
-                      const std::vector<int32_t> &shape) {
-  indices[indices.size() - 1]++;
-  for (int i = indices.size() - 1; i >= 0; i--) {
+                      const std::vector<int32_t> shape) {
+  indices[shape.size() - 1]++;
+  for (int i = shape.size() - 1; i >= 0; i--) {
     if (indices[i] >= shape[i]) {
       indices[i] = 0;
       if (i - 1 >= 0) {
