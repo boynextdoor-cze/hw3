@@ -62,7 +62,23 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  std::vector<size_t> indices = std::vector<size_t>(shape.size(), 0);
+  for (size_t i = 0; i < out->size; i++) {
+    size_t index = 0;
+    for (size_t j = 0; j < shape.size(); j++) {
+      index += indices[j] * strides[j];
+    }
+    out->ptr[i] = a.ptr[index + offset];
+    for (size_t j = 0; j < shape.size(); j++) {
+      indices[j]++;
+      if (indices[j] == shape[j]) {
+        indices[j] = 0;
+        if (j + 1 < shape.size()) {
+          indices[j + 1]++;
+        }
+      }
+    }
+  }
   /// END SOLUTION
 }
 
