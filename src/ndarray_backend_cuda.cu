@@ -387,6 +387,45 @@ void EwiseTanh(const CudaArray& a, CudaArray* out) {
   EwiseUnaryKernel<OpType::TANH><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
 }
 
+__global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, size_t M, size_t N, size_t P) {
+  __shared__ scalar_t sA[TILE][TILE], sB[TILE][TILE];
+  size_t yblock = blockIdx.y;
+  size_t xblock = blockIdx.x;
+  size_t nthreads = blockDim.x * blockDim.y;
+  size_t tid = threadIdx.y * blockDim.x + threadIdx.x;
+  for (size_t ko = 0; ko < N; ko += TILE) {
+    __syncthreads();
+    for (size_t j = 0; j < TILE * TILE / nthreads; ++j) {
+      size_t y = (j * nthreads + tid) / TILE;
+      size_t x = (j * nthreads + tid) % TILE;
+      sA[y][x] = A[(ko + y) * N + yblock * TILE + x];
+    }
+    for (size_t j = 0; j < TILE * TILE / nthreads; ++j) {
+      size_t y = (j * nthreads + tid) / TILE;
+      size_t x = (j * nthreads + tid) % TILE;
+      sB[y][x] = B[(ko + y) * P + xblock * TILE + x];
+    }
+    __syncthreads();
+    scalar_t c[TILE][TILE] = {0};
+    for (size_t ki = 0; ki < TILE; ++ki) {
+      scalar_t a[TILE], b[TILE];
+      for (size_t y = 0; y < TILE; ++y) {
+        a[y] = sA[ki][y * TILE + threadIdx.y];
+        b[y] = sB[ki][y * TILE + threadIdx.x];
+      }
+      for (size_t y = 0; y < TILE; ++y) {
+        for (size_t x = 0; x < TILE; ++x) {
+          c[y][x] += a[y] * b[x];
+        }
+      }
+    }
+    for (size_t y = 0; y < TILE; ++y) {
+      for (size_t x = 0; x < TILE; ++x) {
+        C[(yblock * TILE + y) * P + xblock * TILE + x] = c[y][x];
+      }
+    }
+  }
+}
 
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
             uint32_t P) {
@@ -413,7 +452,9 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  dim3 grid((M + TILE - 1) / TILE, (P + TILE - 1) / TILE, 1);
+  dim3 block(TILE, TILE, 1);
+  MatmulKernel<<<grid, block>>>(a.ptr, b.ptr, out->ptr, M, N, P);
   /// END SOLUTION
 }
 
