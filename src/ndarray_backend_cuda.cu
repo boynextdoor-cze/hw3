@@ -142,7 +142,7 @@ __global__ void EwiseSetitemKernel(const scalar_t* a, scalar_t* out, size_t size
   if (gid < size) {
     out[gid] = a[CompactToStrideIndex(gid, strides, shape, offset)];
   }
-
+}
 
 void EwiseSetitem(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
                   std::vector<int32_t> strides, size_t offset) {
