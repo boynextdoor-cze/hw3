@@ -436,16 +436,18 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
       }
     }
   }
-  size_t xbase = blockIdx.x * blockDim.x;
-  size_t ybase = blockIdx.y * blockDim.y;
-  for (size_t x = 0; x < V; ++x) {
-    for (size_t y = 0; y < V; ++y) {
-      size_t row = xbase + threadIdx.x * V + x;
-      size_t col = ybase + threadIdx.y * V + y;
-      if (row < M && col < P) {
-        C[P * row + col] = c[x][y];
-      } else {
-        break;
+  if (threadIdx.x * V < TILE && threadIdx.y * V < TILE) {
+    size_t xbase = blockIdx.x * blockDim.x;
+    size_t ybase = blockIdx.y * blockDim.y;
+    for (size_t x = 0; x < V; ++x) {
+        for (size_t y = 0; y < V; ++y) {
+        size_t row = xbase + threadIdx.x * V + x;
+        size_t col = ybase + threadIdx.y * V + y;
+        if (row < M && col < P) {
+            C[P * row + col] = c[x][y];
+        } else {
+            break;
+        }
       }
     }
   }
