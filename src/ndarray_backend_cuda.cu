@@ -395,6 +395,8 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
   size_t xblock = blockIdx.x;
   size_t nthreads = blockDim.x * blockDim.y;
   size_t tid = threadIdx.y * blockDim.x + threadIdx.x;
+  scalar_t c[V][V] = {0};
+  scalar_t a[V] = {0}, b[V] = {0};
   for (size_t ko = 0; ko < N; ko += TILE) {
     __syncthreads();
     for (size_t j = 0; j < TILE * TILE / nthreads; ++j) {
@@ -408,8 +410,6 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
       }
     }
     __syncthreads();
-    scalar_t c[V][V] = {0};
-    scalar_t a[V] = {0}, b[V] = {0};
     for (size_t ki = 0; ki < min((size_t)TILE, N - ko); ++ki) {
       if (threadIdx.x * V < TILE && threadIdx.y * V < TILE) {
         for (size_t i = 0; i < V; ++i) {
@@ -429,11 +429,15 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
         }
       }
     }
-    size_t ybase = blockIdx.y * blockDim.y + threadIdx.y;
-    size_t xbase = blockIdx.x * blockDim.x + threadIdx.x;
-    for (size_t x = 0; x < V; ++x) {
-      for (size_t y = 0; y < V; ++y) {
-        C[P * (ybase * V + x) + xbase * V + y] = c[x][y];
+  }
+  size_t ybase = blockIdx.y * blockDim.y + threadIdx.y;
+  size_t xbase = blockIdx.x * blockDim.x + threadIdx.x;
+  for (size_t x = 0; x < V; ++x) {
+    for (size_t y = 0; y < V; ++y) {
+      if (xbase * V + x < M && ybase * V + y < P) {
+        C[P * (xbase * V + x) + ybase * V + y] = c[x][y];
+      } else {
+        break;
       }
     }
   }
