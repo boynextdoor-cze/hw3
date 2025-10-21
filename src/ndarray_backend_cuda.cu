@@ -78,7 +78,7 @@ void Fill(CudaArray* out, scalar_t val) {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Untility function to convert contiguous index i to memory location from strides
-__device__ size_t CompactToStrideIndex(const size_t index, const CudaVec strides, const CudaVec shape, const size_t offset) {
+__device__ size_t CompactToStrideIndex(size_t index, const CudaVec strides, const CudaVec shape, const size_t offset) {
   size_t result = 0;
   for (size_t i = shape.size - 1; i >= 0; i--) {
     result += (index % shape.data[i]) * strides.data[i];
