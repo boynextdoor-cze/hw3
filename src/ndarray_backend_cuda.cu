@@ -80,7 +80,7 @@ void Fill(CudaArray* out, scalar_t val) {
 // Untility function to convert contiguous index i to memory location from strides
 __device__ size_t CompactToStrideIndex(size_t index, const CudaVec strides, const CudaVec shape, const size_t offset) {
   size_t result = 0;
-  for (size_t i = shape.size - 1; i >= 0; i--) {
+  for (int32_t i = shape.size - 1; i >= 0; i--) {
     result += (index % shape.data[i]) * strides.data[i];
     index /= shape.data[i];
   }
@@ -140,7 +140,7 @@ __global__ void EwiseSetitemKernel(const scalar_t* a, scalar_t* out, size_t size
                                    CudaVec strides, size_t offset) {
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if (gid < size) {
-    out[gid] = a[CompactToStrideIndex(gid, strides, shape, offset)];
+    out[CompactToStrideIndex(gid, strides, shape, offset)] = a[gid];
   }
 }
 
@@ -169,7 +169,7 @@ __global__ void ScalarSetitemKernel(scalar_t val, scalar_t* out, size_t size, Cu
                                    CudaVec strides, size_t offset) {
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if (gid < size) {
-    out[gid] = val;
+    out[CompactToStrideIndex(gid, strides, shape, offset)] = val;
   }
 }
 
