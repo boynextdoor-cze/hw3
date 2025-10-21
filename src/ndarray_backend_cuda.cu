@@ -416,10 +416,16 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
           size_t idx = threadIdx.x * V + i;
           if (idx < TILE) {
             a[i] = sA[idx][ki];
+          } else {
+            break;
           }
-          idx = threadIdx.y * V + i;
+        }
+        for (size_t i = 0; i < V; ++i) {
+          size_t idx = threadIdx.y * V + i;
           if (idx < TILE) {
             b[i] = sB[ki][idx];
+          } else {
+            break;
           }
         }
         for (size_t i = 0; i < V; ++i) {
