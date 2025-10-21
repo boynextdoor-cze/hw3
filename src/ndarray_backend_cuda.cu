@@ -387,6 +387,8 @@ void EwiseTanh(const CudaArray& a, CudaArray* out) {
   EwiseUnaryKernel<OpType::TANH><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
 }
 
+#define V 2
+
 __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, size_t M, size_t N, size_t P) {
   __shared__ scalar_t sA[TILE][TILE], sB[TILE][TILE];
   size_t yblock = blockIdx.y;
@@ -396,17 +398,34 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
   for (size_t ko = 0; ko < N; ko += TILE) {
     __syncthreads();
     for (size_t j = 0; j < TILE * TILE / nthreads; ++j) {
-      size_t y = (j * nthreads + tid) / TILE;
-      size_t x = (j * nthreads + tid) % TILE;
-      sA[y][x] = A[(ko + y) * N + yblock * TILE + x];
-      sB[y][x] = B[(ko + y) * P + xblock * TILE + x];
+      size_t x = (j * nthreads + tid) / TILE;
+      size_t y = (j * nthreads + tid) % TILE;
+      if (ko + y < N && xblock * TILE + x < M) {
+        sA[x][y] = A[(xblock * TILE + x) * N + ko + y];
+      }
+      if (ko + x < N && yblock * TILE + y < P) {
+        sB[x][y] = B[(ko + x) * P + yblock * TILE + y];
+      }
     }
     __syncthreads();
-    scalar_t c[TILE][TILE] = {0};
-    for (size_t ki = 0; ki < TILE; ++ki) {
-      for (size_t y = 0; y < TILE; ++y) {
-        for (size_t x = 0; x < TILE; ++x) {
-          c[y][x] += sA[ki][y * TILE + threadIdx.y] * sB[ki][x * TILE + threadIdx.x];
+    scalar_t c[V][V] = {0};
+    scalar_t a[V] = {0}, b[V] = {0};
+    for (size_t ki = 0; ki < min(TILE, N - ko); ++ki) {
+      if (threadIdx.x * V < TILE && threadIdx.y * V < TILE) {
+        for (size_t i = 0; i < V; ++i) {
+          size_t idx = threadIdx.x * V + i;
+          if (idx < TILE) {
+            a[i] = sA[idx][ki];
+          }
+          idx = threadIdx.y * V + i;
+          if (idx < TILE) {
+            b[i] = sB[ki][idx];
+          }
+        }
+        for (size_t i = 0; i < V; ++i) {
+          for (size_t j = 0; j < V; ++j) {
+            c[i][j] += a[i] * b[j];
+          }
         }
       }
     }
