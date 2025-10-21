@@ -410,7 +410,7 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
     __syncthreads();
     scalar_t c[V][V] = {0};
     scalar_t a[V] = {0}, b[V] = {0};
-    for (size_t ki = 0; ki < min(TILE, N - ko); ++ki) {
+    for (size_t ki = 0; ki < min((size_t)TILE, N - ko); ++ki) {
       if (threadIdx.x * V < TILE && threadIdx.y * V < TILE) {
         for (size_t i = 0; i < V; ++i) {
           size_t idx = threadIdx.x * V + i;
