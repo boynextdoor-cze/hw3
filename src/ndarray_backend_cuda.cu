@@ -396,22 +396,17 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
   for (size_t ko = 0; ko < N; ko += TILE) {
     __syncthreads();
     for (size_t j = 0; j < TILE * TILE / nthreads; ++j) {
-      size_t x = (j * nthreads + tid) / TILE;
-      size_t y = (j * nthreads + tid) % TILE;
-      sA[x][y] = A[N * (TILE * xblock + x) + y + ko];
-      sB[x][y] = B[P * (x + ko) + y + yblock * TILE];
+      size_t y = (j * nthreads + tid) / TILE;
+      size_t x = (j * nthreads + tid) % TILE;
+      sA[y][x] = A[(ko + y) * N + yblock * TILE + x];
+      sB[y][x] = B[(ko + y) * P + xblock * TILE + x];
     }
     __syncthreads();
     scalar_t c[TILE][TILE] = {0};
     for (size_t ki = 0; ki < TILE; ++ki) {
-      scalar_t a[TILE], b[TILE];
-      for (size_t i = 0; i < TILE; ++i) {
-        a[i] = sA[ki][threadIdx.y * TILE + i];
-        b[i] = sB[ki][threadIdx.x * TILE + i];
-      }
       for (size_t y = 0; y < TILE; ++y) {
         for (size_t x = 0; x < TILE; ++x) {
-          c[y][x] += a[x] * b[y];
+          c[y][x] += sA[ki][y * TILE + threadIdx.y] * sB[ki][x * TILE + threadIdx.x];
         }
       }
     }
