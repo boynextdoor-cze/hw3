@@ -279,18 +279,7 @@ __global__ void EwiseKernel(const scalar_t* a, const scalar_t* b, scalar_t* out,
       case OpType::EQ: out[gid] = (a[gid] == b[gid]) ? 1.0f : 0.0f; break;
       case OpType::GE: out[gid] = (a[gid] >= b[gid]) ? 1.0f : 0.0f; break;
       case OpType::ADD: out[gid] = a[gid] + b[gid]; break;
-      case OpType::POWER:
-        out[gid] = powf(a[gid], b[gid]);
-        break;
-      case OpType::LOG:
-        out[gid] = logf(a[gid]);
-        break;
-      case OpType::EXP:
-        out[gid] = expf(a[gid]);
-        break;
-      case OpType::TANH:
-        out[gid] = tanhf(a[gid]);
-        break;
+      case OpType::POWER: out[gid] = powf(a[gid], b[gid]); break;
     }
   }
 }
@@ -307,6 +296,18 @@ __global__ void ScalarKernel(const scalar_t* a, scalar_t val, scalar_t* out, siz
       case OpType::GE: out[gid] = (a[gid] >= val) ? 1.0f : 0.0f; break;
       case OpType::ADD: out[gid] = a[gid] + val; break;
       case OpType::POWER: out[gid] = powf(a[gid], val); break;
+    }
+  }
+}
+
+template <OpType op>
+__global__ void EwiseUnaryKernel(const scalar_t* a, scalar_t* out, size_t size) {
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (gid < size) {
+    switch(op) {
+      case OpType::LOG: out[gid] = logf(a[gid]); break;
+      case OpType::EXP: out[gid] = expf(a[gid]); break;
+      case OpType::TANH: out[gid] = tanhf(a[gid]); break;
     }
   }
 }
@@ -372,17 +373,17 @@ void ScalarGe(const CudaArray& a, scalar_t val, CudaArray* out) {
 
 void EwiseLog(const CudaArray& a, CudaArray* out) {
   CudaDims dim = CudaOneDim(out->size);
-  EwiseKernel<OpType::LOG><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
+  EwiseUnaryKernel<OpType::LOG><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
 }
 
 void EwiseExp(const CudaArray& a, CudaArray* out) {
   CudaDims dim = CudaOneDim(out->size);
-  EwiseKernel<OpType::EXP><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
+  EwiseUnaryKernel<OpType::EXP><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
 }
 
 void EwiseTanh(const CudaArray& a, CudaArray* out) {
   CudaDims dim = CudaOneDim(out->size);
-  EwiseKernel<OpType::TANH><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
+  EwiseUnaryKernel<OpType::TANH><<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
 }
 
 
