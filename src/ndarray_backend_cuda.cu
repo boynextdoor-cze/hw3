@@ -431,9 +431,9 @@ __global__ void MatmulKernel(const scalar_t* A, const scalar_t* B, scalar_t* C, 
     }
     size_t ybase = blockIdx.y * blockDim.y + threadIdx.y;
     size_t xbase = blockIdx.x * blockDim.x + threadIdx.x;
-    for (size_t y = 0; y < TILE; ++y) {
-      for (size_t x = 0; x < TILE; ++x) {
-        C[P * (ybase * TILE + y) + xbase * TILE + x] = c[y][x];
+    for (size_t x = 0; x < V; ++x) {
+      for (size_t y = 0; y < V; ++y) {
+        C[P * (ybase * V + x) + xbase * V + y] = c[x][y];
       }
     }
   }
