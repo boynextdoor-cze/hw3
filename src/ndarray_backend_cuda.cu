@@ -243,9 +243,9 @@ void ScalarAdd(const CudaArray& a, scalar_t val, CudaArray* out) {
 }
 
 /**
- * In the code the follows, use the above template to create analogous elementise
- * and and scalar operators for the following functions.  See the numpy backend for
- * examples of how they should work.
+ * In the code the follows, use the above template to create analogous
+ * elementise and and scalar operators for the following functions.  See the
+ * numpy backend for examples of how they should work.
  *   - EwiseMul, ScalarMul
  *   - EwiseDiv, ScalarDiv
  *   - ScalarPower
@@ -257,15 +257,96 @@ void ScalarAdd(const CudaArray& a, scalar_t val, CudaArray* out) {
  *   - EwiseTanh
  *
  * If you implement all these naively, there will be a lot of repeated code, so
- * you are welcome (but not required), to use macros or templates to define these
- * functions (however you want to do so, as long as the functions match the proper)
- * signatures above.
+ * you are welcome (but not required), to use macros or templates to define
+ * these functions (however you want to do so, as long as the functions match
+ * the proper) signatures above.
  */
 
+template<typename T>
+__global__ void EwiseKernel(const T* a, const T* b, T* out, size_t size, T (*op)(T, T)) {
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (gid < size) out[gid] = op(a[gid], b[gid]);
+}
+
+template<typename T>
+__global__ void ScalarKernel(const T* a, T val, T* out, size_t size, T (*op)(T, T)) {
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (gid < size) out[gid] = op(a[gid], val);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Elementwise and scalar operations
 ////////////////////////////////////////////////////////////////////////////////
+
+void EwiseMul(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, [](T a, T b) { return a * b; });
+}
+
+void ScalarMul(const CudaArray& a, scalar_t val, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  ScalarKernel<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a * b; });
+}
+
+void EwiseDiv(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a / b; });
+}
+
+void ScalarDiv(const CudaArray& a, scalar_t val, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  ScalarKernel<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a / b; });
+}
+
+void ScalarPower(const CudaArray& a, scalar_t val, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  ScalarKernel<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, [](scalar_t a, scalar_t b) { return std::pow(a, b); });
+}
+
+void EwiseMaximum(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return std::max(a, b); });
+}
+
+void ScalarMaximum(const CudaArray& a, scalar_t val, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  ScalarKernel<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, [](scalar_t a, scalar_t b) { return std::max(a, b); });
+}
+
+void EwiseEq(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a == b; });
+}
+
+void ScalarEq(const CudaArray& a, scalar_t val, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  ScalarKernel<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a == b; });
+}
+
+void EwiseGe(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a >= b; });
+}
+
+void ScalarGe(const CudaArray& a, scalar_t val, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  ScalarKernel<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, [](scalar_t a, scalar_t b) { return a >= b; });
+}
+
+void EwiseLog(const CudaArray& a, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return std::log(a); });
+}
+
+void EwiseExp(const CudaArray& a, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return std::exp(a); });
+}
+
+void EwiseTanh(const CudaArray& a, CudaArray* out) {
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, [](scalar_t a, scalar_t b) { return std::tanh(a); });
+}
 
 
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
@@ -382,22 +463,22 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_add", EwiseAdd);
   m.def("scalar_add", ScalarAdd);
 
-  // m.def("ewise_mul", EwiseMul);
-  // m.def("scalar_mul", ScalarMul);
-  // m.def("ewise_div", EwiseDiv);
-  // m.def("scalar_div", ScalarDiv);
-  // m.def("scalar_power", ScalarPower);
+  m.def("ewise_mul", EwiseMul);
+  m.def("scalar_mul", ScalarMul);
+  m.def("ewise_div", EwiseDiv);
+  m.def("scalar_div", ScalarDiv);
+  m.def("scalar_power", ScalarPower);
 
-  // m.def("ewise_maximum", EwiseMaximum);
-  // m.def("scalar_maximum", ScalarMaximum);
-  // m.def("ewise_eq", EwiseEq);
-  // m.def("scalar_eq", ScalarEq);
-  // m.def("ewise_ge", EwiseGe);
-  // m.def("scalar_ge", ScalarGe);
+  m.def("ewise_maximum", EwiseMaximum);
+  m.def("scalar_maximum", ScalarMaximum);
+  m.def("ewise_eq", EwiseEq);
+  m.def("scalar_eq", ScalarEq);
+  m.def("ewise_ge", EwiseGe);
+  m.def("scalar_ge", ScalarGe);
 
-  // m.def("ewise_log", EwiseLog);
-  // m.def("ewise_exp", EwiseExp);
-  // m.def("ewise_tanh", EwiseTanh);
+  m.def("ewise_log", EwiseLog);
+  m.def("ewise_exp", EwiseExp);
+  m.def("ewise_tanh", EwiseTanh);
 
   // m.def("matmul", Matmul);
 
